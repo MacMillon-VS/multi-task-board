@@ -69,6 +69,8 @@ function ColumnContainer({
       rounded-md
       flex
       flex-col
+      max-sm:w-[250px]
+      max-sm:max-h-[400px]
       "
       ></div>
     );
@@ -86,6 +88,8 @@ function ColumnContainer({
   rounded-md
   flex
   flex-col
+  max-sm:w-[250px]
+  max-sm:max-h-[400px]
   "
     >
       {/* Column title */}

@@ -101,10 +101,13 @@ const defaultTasks: Task[] = [
 ];
 
 function KanbanBoard() {
-  const [columns, setColumns] = useState<Column[]>(defaultCols);
+  // const [columns, setColumns] = useState<Column[]>(defaultCols);
+  const [isHelpVisible, setIsHelpVisible] = useState(false);
+  const [columns, setColumns] = useState<Column[]>(getColumnsFromLocalStorage);
+const [tasks, setTasks] = useState<Task[]>(getTasksFromLocalStorage);
   const columnsId = useMemo(() => columns.map((col) => col.id), [columns]);
 
-  const [tasks, setTasks] = useState<Task[]>(defaultTasks);
+  // const [tasks, setTasks] = useState<Task[]>(defaultTasks);
 
   const [activeColumn, setActiveColumn] = useState<Column | null>(null);
 
@@ -117,7 +120,23 @@ function KanbanBoard() {
       },
     })
   );
-
+  function getColumnsFromLocalStorage(): Column[] {
+    const columnsJSON = localStorage.getItem('columns');
+    return columnsJSON ? JSON.parse(columnsJSON) : defaultCols;
+  }
+  
+  function setColumnsInLocalStorage(columns: Column[]): void {
+    localStorage.setItem('columns', JSON.stringify(columns));
+  }
+  
+  function getTasksFromLocalStorage(): Task[] {
+    const tasksJSON = localStorage.getItem('tasks');
+    return tasksJSON ? JSON.parse(tasksJSON) : defaultTasks;
+  }
+  
+  function setTasksInLocalStorage(tasks: Task[]): void {
+    localStorage.setItem('tasks', JSON.stringify(tasks));
+  }
   return (
     <div
       className="
@@ -131,6 +150,7 @@ function KanbanBoard() {
         px-[40px]
     "
     >
+      
       <DndContext
         sensors={sensors}
         onDragStart={onDragStart}
@@ -154,6 +174,7 @@ function KanbanBoard() {
               ))}
             </SortableContext>
           </div>
+          <div className="flex flex-col items-center" >
           <button
             onClick={() => {
               createNewColumn();
@@ -177,6 +198,35 @@ function KanbanBoard() {
             <PlusIcon />
             Add Column
           </button>
+        <button className="w-[120px] 
+      cursor-pointer
+      text-center
+      rounded-lg
+      bg-rose-700
+      hover:bg-rose-400
+      border-2
+      border-rose-400
+      p-4
+      ring-columnBackgroundColor
+      hover:ring-2
+      flex
+      m-4
+      justify-center
+      gap-2" onClick={()=>{
+        setColumns([]);
+  setTasks([]);
+        localStorage.removeItem('columns'); localStorage.removeItem('tasks')}}>Reset Tasks</button>
+        <button className="border w-[120px] border-gray-700 p-3 rounded-md hover:ring-rose-500 hover:ring-1 hover:text-slate-200 cursor-help m-2 text-center text-gray-500" onMouseEnter={()=>setIsHelpVisible(true)} onMouseLeave={()=>setIsHelpVisible(false)}>Help</button>
+        {isHelpVisible&&<ul className="p-2 rounded-md ring-rose-500 ring-1 text-slate-200 cursor-help m-2 text-left text-sm">
+          <li>Click Add column to start</li>
+          <li>After edit</li>
+          <li>To save press enter or click outside column title</li>
+          <li>To save press shift+enter or click outside task</li>
+          <li>Drag and drop columns or task to move around</li>
+          <li>Click Reset to delete everything</li>
+          
+        </ul>}
+      </div>
         </div>
 
         {createPortal(
@@ -215,12 +265,18 @@ function KanbanBoard() {
       content: `Task ${tasks.length + 1}`,
     };
 
-    setTasks([...tasks, newTask]);
+    // setTasks([...tasks, newTask]);
+    const updatedTasks = [...tasks, newTask];
+  setTasks(updatedTasks);
+
+  // Update localStorage with the updated columns
+  setTasksInLocalStorage(updatedTasks);
   }
 
   function deleteTask(id: Id) {
     const newTasks = tasks.filter((task) => task.id !== id);
     setTasks(newTasks);
+    setTasksInLocalStorage(newTasks)
   }
 
   function updateTask(id: Id, content: string) {
@@ -230,6 +286,7 @@ function KanbanBoard() {
     });
 
     setTasks(newTasks);
+    setTasksInLocalStorage(newTasks);
   }
 
   function createNewColumn() {
@@ -238,15 +295,22 @@ function KanbanBoard() {
       title: `Column ${columns.length + 1}`,
     };
 
-    setColumns([...columns, columnToAdd]);
+    // setColumns([...columns, columnToAdd]);
+    const updatedColumns = [...columns, columnToAdd];
+  setColumns(updatedColumns);
+
+  // Update localStorage with the updated columns
+  setColumnsInLocalStorage(updatedColumns);
   }
 
   function deleteColumn(id: Id) {
     const filteredColumns = columns.filter((col) => col.id !== id);
     setColumns(filteredColumns);
+    setColumnsInLocalStorage(filteredColumns)
 
     const newTasks = tasks.filter((t) => t.columnId !== id);
     setTasks(newTasks);
+    setTasksInLocalStorage(newTasks)
   }
 
   function updateColumn(id: Id, title: string) {
@@ -256,6 +320,7 @@ function KanbanBoard() {
     });
 
     setColumns(newColumns);
+    setColumnsInLocalStorage(newColumns)
   }
 
   function onDragStart(event: DragStartEvent) {
@@ -285,14 +350,22 @@ function KanbanBoard() {
     const isActiveAColumn = active.data.current?.type === "Column";
     if (!isActiveAColumn) return;
 
-    console.log("DRAG END");
 
     setColumns((columns) => {
       const activeColumnIndex = columns.findIndex((col) => col.id === activeId);
 
       const overColumnIndex = columns.findIndex((col) => col.id === overId);
 
-      return arrayMove(columns, activeColumnIndex, overColumnIndex);
+      // return arrayMove(columns, activeColumnIndex, overColumnIndex);
+      const updatedColumns = arrayMove(columns, activeColumnIndex, overColumnIndex);
+
+    // Update the state with the updated columns
+    setColumns(updatedColumns);
+
+    // Update localStorage with the updated columns
+    setColumnsInLocalStorage(updatedColumns);
+
+    return updatedColumns;
     });
   }
 
@@ -322,7 +395,14 @@ function KanbanBoard() {
           return arrayMove(tasks, activeIndex, overIndex - 1);
         }
 
-        return arrayMove(tasks, activeIndex, overIndex);
+        // return arrayMove(tasks, activeIndex, overIndex);
+        const updatedTasks = arrayMove(tasks, activeIndex, overIndex);
+
+    setTasks(updatedTasks);
+
+    setTasksInLocalStorage(updatedTasks);
+
+    return updatedTasks;
       });
     }
 
@@ -335,7 +415,14 @@ function KanbanBoard() {
 
         tasks[activeIndex].columnId = overId;
         // console.log("DROPPING TASK OVER COLUMN", { activeIndex });
-        return arrayMove(tasks, activeIndex, activeIndex);
+        // return arrayMove(tasks, activeIndex, activeIndex);
+        const updatedTasks = arrayMove(tasks, activeIndex, activeIndex);
+
+        setTasks(updatedTasks);
+    
+        setTasksInLocalStorage(updatedTasks);
+    
+        return updatedTasks;
       });
     }
   }
